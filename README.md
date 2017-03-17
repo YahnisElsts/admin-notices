@@ -109,7 +109,7 @@ AdminNotice::cleanUpDatabase('myplugin-');
 
 These methods control **where** notices will appear and **who** will be able to see them.
  
-##### onPage($screenId)
+##### `onPage($screenId)`
 
 Show the notice only on the specified admin page(s). `$screenId` can be either the screen ID of a page (i.e. a string), or an array of screen IDs.
  
@@ -141,7 +141,7 @@ add_action('admin_menu', function() {
 
 ```
 
-##### requiredCap($capability)
+##### `requiredCap($capability)`
 
 Show the notice only to users who have the specified `$capability`.
 
