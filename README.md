@@ -27,16 +27,16 @@ You don't have to put this code in a hook. The `show()` method is smart. It chec
 
 WordPress comes with several built-in CSS classes for different types of admin notices. You can use the following shortcut methods to simultaneously set the notice type and the contents of the notice.
 
-#### `success('Good news')`
-#### `error('Bad news')`
-#### `warning('Caution')`
-#### `info('Information')`
+##### `success('Good news')`
+##### `error('Bad news')`
+##### `warning('Caution')`
+##### `info('Information')`
 
 ### Content
 
 Instead of passing a string to one of the type-specific methods, you can set the contents of the notice by calling one of the following methods. 
 
-#### `text($message)`
+##### `text($message)`
 
 Set the contents of the notice to a text string. `text()` will escape 
 HTML special characters like `<`, `>`, `&` and so on.
@@ -49,21 +49,21 @@ AdminNotice::create()
 	->show();
 ```
 
-#### `html($arbitraryHtml)`
+##### `html($arbitraryHtml)`
 
 Set the contents of the notice to a HTML string. Unlike `text()`, this method does not perform any escaping or encoding.
  
-#### `rawHtml($arbitraryHtml)`
+##### `rawHtml($arbitraryHtml)`
 
 Usually, the contents of a notice are wrapped in a single paragraph (`<p>`) tag. To prevent this wrapping, use `rawHtml()` to set the notice content. This is useful if you want to use complex HTML or to display a long message where one paragraph is not enough.
 
 ### Dismissible notices
 
-#### `dismissible()`
+##### `dismissible()`
 
 Add an "(x)" icon to the notice. Clicking the icon will hide the notice. However, this doesn't prevent the notice from reappearing in the future. Use `persistentlyDismissible()` for that.
 
-#### `persistentlyDismissible([$scope])`
+##### `persistentlyDismissible([$scope])`
 
 Make the notice persistently dismissible. When the user dismisses the notice, the library stores a flag in the database that prevents the notice from showing up again. Persistently dismissible notices must have a unique ID.
  
@@ -84,19 +84,19 @@ AdminNotice::create('my-notice-id')
 
 It's safe to call `show()` on a dismissed notice. It won't display the notice, and it won't throw an error either. 
 
-#### `dismiss()`
+##### `dismiss()`
 
 Permanently dismiss the notice. Only works on notices that have been flagged as `persistentlyDismissible()`.
 
-#### `undismiss()`
+##### `undismiss()`
 
 Restore a previously dismissed notice.
 
-#### `isDismissed() : boolean`
+##### `isDismissed() : boolean`
 
 Check if the notice has been dismissed.
 
-#### `AdminNotice::cleanUpDatabase($prefix)`
+##### `AdminNotice::cleanUpDatabase($prefix)`
 
 Delete all "this notice is dismissed" flags that have the specified ID prefix from the database. If you're using persistently dismissible notices, it's a good idea to call this function when your plugin is uninstalled. 
 
@@ -109,7 +109,7 @@ AdminNotice::cleanUpDatabase('myplugin-');
 
 These methods control **where** notices will appear and **who** will be able to see them.
  
-#### onPage($screenId)
+##### onPage($screenId)
 
 Show the notice only on the specified admin page(s). `$screenId` can be either the screen ID of a page (i.e. a string), or an array of screen IDs.
  
@@ -141,7 +141,7 @@ add_action('admin_menu', function() {
 
 ```
 
-#### requiredCap($capability)
+##### requiredCap($capability)
 
 Show the notice only to users who have the specified `$capability`.
 
@@ -149,16 +149,16 @@ Show the notice only to users who have the specified `$capability`.
 
 After creating a notice, call one of these methods to display it.
 
-#### `show()`
+##### `show()`
 
 Automagically show the notice on the current page when all preconditions are met.
 
-#### `showOnNextPage()`
+##### `showOnNextPage()`
 
 Show the notice on the next admin page that's visited by the current user. The notice will be shown only once. 
 
 This method is useful for plugin activation hooks, redirects, and other situations where you can't display a notice immediately for whatever reason. The library will store the notice in the database. It will display the notice the next time that the `admin_notices` action is called in the context of the current user, whether happens during this page load or the next one, or a week later.  
 
-#### `outputNotice()`
+##### `outputNotice()`
 
 Immediately display the notice. This method bypasses any checks and preconditions and just outputs the notice directly. It's mainly intended for debugging.
