@@ -3,13 +3,13 @@ A PHP utility library for WordPress plugins that helps create admin notices.
 
 ## Highlights
 * Fluent interface.
-* Persistently dismissible notices.
-* Show notices on specific pages.
-* Show notices to users who have a specific capability.
+* [Persistently dismissible notices.](#persistentlydismissiblescope)
+* Show notices [on specific pages](#onpagescreenid).
+* Show notices to users who have [a specific capability](#requiredcapcapability).
 
 ## Usage
 
-**Basic example**
+Basic example:
 ```php
 require '/path/to/AdminNotice.php';
 use \YeEasyAdminNotices\V1\AdminNotice;
@@ -41,7 +41,7 @@ Instead of passing a string to one of the type-specific methods, you can set the
 Set the contents of the notice to a text string. `text()` will escape 
 HTML special characters like `<`, `>`, `&` and so on.
 
-**Example:**
+Example:
 ```php
 AdminNotice::create()
 	->info()
@@ -72,7 +72,7 @@ The `$scope` parameter controls whether clicking "(x)" will hide the notice for 
 * `AdminNotice::DISMISS_PER_SITE` - hide the notice site-wide. This is the default.
 * `AdminNotice::DISMISS_PER_USER` - hide the notice only for the current user.
 
-**Example:** 
+Example:
 ```php
 AdminNotice::create('my-notice-id')
 	->persistentlyDismissible(AdminNotice::DISMISS_PER_SITE)
@@ -115,8 +115,7 @@ Show the notice only on the specified admin page(s). `$screenId` can be either t
  
 See [Admin Screen Reference](https://codex.wordpress.org/Plugin_API/Admin_Screen_Reference) for a list of screen and their IDs. In the case of plugin and theme admin pages, the screen ID is usually the same as the value returned by the `add_*_page()` function.
 
-**Example:**
-
+Example:
 ```php
 AdminNotice::create()
 	->info()
