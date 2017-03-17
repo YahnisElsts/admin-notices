@@ -108,7 +108,7 @@ class BasicNoticeTest extends NoticeTestCase {
 		global $wpdb;
 
 		//Add a dummy user to give the dismiss-per-user feature something to work with.
-		wp_set_current_user($this->factory()->user->create());
+		wp_set_current_user($this->factory->user->create());
 
 		//Get the initial number of rows in the DB tables that are used to store "dismissed" flags.
 		$initialOptionCount = intval($wpdb->get_var('SELECT COUNT(*) FROM ' . $wpdb->options));
