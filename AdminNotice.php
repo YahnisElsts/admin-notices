@@ -523,18 +523,25 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		 */
 		protected static function isUnhandledAjaxAction() {
 			$doingAjax = defined('DOING_AJAX') && constant('DOING_AJAX');
-			$action = (isset($_POST['action']) && is_string($_POST['action'])) ? $_POST['action'] : null;
+			if (!$doingAjax) {
+				return false;
+			}
 
-			if (!$doingAjax || !isset($action) || (has_action('wp_ajax_' . $action) === true)) {
+			$requiredParams = array('action', 'notice-data', 'signature', '_ajax_nonce');
+			foreach($requiredParams as $param) {
+				if (empty($_POST[$param]) || !is_string($_POST[$param])) {
+					return false;
+				}
+			}
+
+			$action = $_POST['action'];
+			if (has_action('wp_ajax_' . $action) === true) {
 				return false;
 			}
 
 			$isDismissAction = self::stringStartsWith($action, self::DISMISS_ACTION_PREFIX)
 				&& (strlen($action) > strlen(self::DISMISS_ACTION_PREFIX));
-			$hasExpectedParams = isset($_POST['notice-data'], $_POST['signature'], $_POST['_ajax_nonce'])
-				&& !empty($_POST['notice-data']) && !empty($_POST['signature']);
-
-			return $isDismissAction && $hasExpectedParams;
+			return $isDismissAction;
 		}
 
 		protected static function stringStartsWith($input, $prefix) {
