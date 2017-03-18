@@ -11,6 +11,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 
 		const DISMISS_PER_USER = 'user';
 		const DISMISS_PER_SITE = 'site';
+		const DISMISS_ACTION_PREFIX = 'ye_v1_dismiss-';
 
 		const DISMISSED_OPTION_PREFIX = 'ye_is_dismissed-';
 		const DELAYED_NOTICE_OPTION = 'ye_delayed_notices';
@@ -114,9 +115,6 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		 * @return $this
 		 */
 		public function persistentlyDismissible($scope = self::DISMISS_PER_SITE) {
-			//TODO: If the notice is no longer registered when it's dismissed, we should still be able to dismiss it. Consider capabilities, too.
-			//Transients would work. See https://github.com/collizo4sky/persist-admin-notices-dismissal
-
 			if (empty($this->id)) {
 				throw new \LogicException('Persistently dismissible notices must have a unique ID.');
 			}
@@ -226,6 +224,12 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 
 			if ($this->isPersistentlyDismissible) {
 				$attributes['data-ye-dismiss-nonce'] = wp_create_nonce($this->getDismissActionName());
+
+				$attributes['data-ye-notice-data'] = $this->toJson();
+				$attributes['data-ye-signature'] = wp_create_nonce(
+					$this->id . '|' . $attributes['data-ye-dismiss-nonce'] . '|' . $attributes['data-ye-notice-data']
+				);
+
 				$this->enqueueScriptOnce();
 			}
 
@@ -243,7 +247,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 					'ye-dismiss-notice',
 					plugins_url('dismiss-notice.js', __FILE__),
 					array('jquery'),
-					'20161126',
+					'20170318',
 					true
 				);
 			}
@@ -302,22 +306,36 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				return;
 			}
 
-			$myClass = get_called_class();
-
 			foreach ($notices as $json) {
-				$properties = json_decode($json, true);
+				$notice = static::tryUnserializeNotice($json);
+				if (isset($notice)) {
+					$notice->show();
 
-				//Ignore notices created by other versions of this class.
-				if (empty($properties) || empty($properties['_className']) || ($properties['_className'] !== $myClass)) {
-					continue;
+					//Only show the notice once.
+					delete_user_meta($userId, static::DELAYED_NOTICE_OPTION, wp_slash($json));
 				}
-
-				$notice = static::fromJson($json);
-				$notice->show();
-
-				//Only show the notice once.
-				delete_user_meta($userId, static::DELAYED_NOTICE_OPTION, wp_slash($json));
 			}
+		}
+
+		/**
+		 * Attempt to unserialize a notice from JSON.
+		 *
+		 * @internal
+		 * @param string $json
+		 * @return null|static
+		 */
+		protected static function tryUnserializeNotice($json) {
+			$properties = json_decode($json, true);
+			if (!is_array($properties) || empty($properties)) {
+				return null;
+			}
+
+			//Ignore notices created by other versions of this class.
+			if (empty($properties['_className']) || ($properties['_className'] !== get_called_class())) {
+				return null;
+			}
+
+			return static::fromJson($json);
 		}
 
 		/**
@@ -405,7 +423,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 
 		public function dismiss() {
 			if (!$this->isPersistentlyDismissible) {
-				return;
+				return $this;
 			}
 
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
@@ -413,18 +431,23 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			} else {
 				update_user_meta(get_current_user_id(), $this->getDismissOptionName(), true);
 			}
+
+			return $this;
 		}
 
 		public function undismiss() {
 			if (!$this->isPersistentlyDismissible) {
-				return;
+				return $this;
 			}
 
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
 				delete_option($this->getDismissOptionName());
 			} else {
+				//TODO: What if this gets called before the user is authenticated? Undismiss for all users?
 				delete_user_meta(get_current_user_id(), $this->getDismissOptionName());
 			}
+
+			return $this;
 		}
 
 		/**
@@ -461,20 +484,63 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
 				return (boolean)(get_option($this->getDismissOptionName(), false));
 			} else {
-				return (boolean)(get_user_meta(get_current_user_id(), $this->getDismissOptionName(), false));
+				return (boolean)(get_user_meta(get_current_user_id(), $this->getDismissOptionName(), true));
 			}
 		}
 
 		protected function getDismissActionName() {
-			return 'ye_dismiss-' . $this->id;
+			return self::DISMISS_ACTION_PREFIX . $this->id;
 		}
 
 		protected function getDismissOptionName() {
 			return static::DISMISSED_OPTION_PREFIX . $this->id;
 		}
-	}
 
-	add_action('admin_notices', array(__NAMESPACE__ . '\\AdminNotice', '_showDelayedNotices'));
+		/**
+		 * @internal
+		 */
+		public static function _ajaxAddDismissalHandler() {
+			if (!self::isUnhandledAjaxAction()) {
+				return;
+			}
+
+			$id =        substr($_POST['action'], strlen(self::DISMISS_ACTION_PREFIX));
+			$ajaxNonce = strval($_POST['_ajax_nonce']);
+			$json =      strval(wp_unslash($_POST['notice-data']));
+			if (!wp_verify_nonce($_POST['signature'], $id . '|' . $ajaxNonce . '|' . $json)) {
+				return;
+			}
+
+			//The notice will automatically set an AJAX hook when it gets unserialized.
+			self::tryUnserializeNotice($json);
+		}
+
+		/**
+		 * Is this a "dismiss notice" AJAX request without a registered action callback?
+		 *
+		 * @internal
+		 * @return bool
+		 */
+		protected static function isUnhandledAjaxAction() {
+			$doingAjax = defined('DOING_AJAX') && constant('DOING_AJAX');
+			$action = (isset($_POST['action']) && is_string($_POST['action'])) ? $_POST['action'] : null;
+
+			if (!$doingAjax || !isset($action) || (has_action('wp_ajax_' . $action) === true)) {
+				return false;
+			}
+
+			$isDismissAction = self::stringStartsWith($action, self::DISMISS_ACTION_PREFIX)
+				&& (strlen($action) > strlen(self::DISMISS_ACTION_PREFIX));
+			$hasExpectedParams = isset($_POST['notice-data'], $_POST['signature'], $_POST['_ajax_nonce'])
+				&& !empty($_POST['notice-data']) && !empty($_POST['signature']);
+
+			return $isDismissAction && $hasExpectedParams;
+		}
+
+		protected static function stringStartsWith($input, $prefix) {
+			return substr($input, 0, strlen($prefix)) === $prefix;
+		}
+	}
 
 	/**
 	 * Create an admin notice.
@@ -485,5 +551,8 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 	function easyAdminNotice($id = null) {
 		return new AdminNotice($id);
 	}
+
+	add_action('admin_notices', array(__NAMESPACE__ . '\\AdminNotice', '_showDelayedNotices'));
+	add_action('admin_init', array(__NAMESPACE__ . '\\AdminNotice', '_ajaxAddDismissalHandler'), 300);
 
 } //class_exists

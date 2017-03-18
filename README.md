@@ -82,9 +82,9 @@ AdminNotice::create('my-notice-id')
 	->show();
 ```
 
-**Dismissed notices and `show()`**
-
-It's safe to call `show()` on a dismissed notice. It won't display the notice, and it won't throw an error either. 
+Notes:
+* You must load `AdminNotice.php` before the `admin_init` action to make sure that the default AJAX handlers get set up correctly.
+* It's safe to call `show()` on a dismissed notice. It won't display the notice, and it won't throw an error either.
 
 ##### `dismiss()`
 
