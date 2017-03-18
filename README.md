@@ -1,6 +1,8 @@
 # Easy Admin Notices
 A PHP utility library for WordPress plugins that helps create admin notices.
 
+[![Build Status](https://travis-ci.org/YahnisElsts/admin-notices.svg?branch=master)](https://travis-ci.org/YahnisElsts/admin-notices)
+
 ## Highlights
 * Fluent interface.
 * [Persistently dismissible notices.](#persistentlydismissiblescope)
