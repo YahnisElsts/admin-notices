@@ -394,6 +394,11 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				return;
 			}
 
+			if (isset($this->requiredCapability) && !current_user_can($this->requiredCapability)) {
+				wp_die('Access denied. You don\'t have the required capability to dismiss this notice.');
+				return;
+			}
+
 			$this->dismiss();
 			exit('Notice dismissed');
 		}
