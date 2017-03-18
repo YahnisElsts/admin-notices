@@ -198,7 +198,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				return;
 			}
 
-			if ($this->isPersistentlyDismissible && $this->isDismissed()) {
+			if ($this->isDismissed()) {
 				return;
 			}
 			$this->outputNotice();
@@ -243,16 +243,14 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 
 		protected function enqueueScriptOnce() {
 			if (!wp_script_is('ye-dismiss-notice', 'registered')) {
-				wp_register_script(
+				//Note: Queueing a script also registers it.
+				wp_enqueue_script(
 					'ye-dismiss-notice',
 					plugins_url('dismiss-notice.js', __FILE__),
 					array('jquery'),
 					'20170318',
 					true
 				);
-			}
-			if (!wp_script_is('ye-dismiss-notice', 'enqueued') && !wp_script_is('ye-dismiss-notice', 'done')) {
-				wp_enqueue_script('ye-dismiss-notice');
 			}
 		}
 
@@ -326,12 +324,12 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		 */
 		protected static function tryUnserializeNotice($json) {
 			$properties = json_decode($json, true);
-			if (!is_array($properties) || empty($properties)) {
+			if (!is_array($properties)) {
 				return null;
 			}
 
 			//Ignore notices created by other versions of this class.
-			if (empty($properties['_className']) || ($properties['_className'] !== get_called_class())) {
+			if (self::getKey($properties, '_className') !== get_called_class()) {
 				return null;
 			}
 
