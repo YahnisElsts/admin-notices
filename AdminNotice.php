@@ -15,7 +15,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		const DISMISSED_OPTION_PREFIX = 'ye_is_dismissed-';
 		const DELAYED_NOTICE_OPTION = 'ye_delayed_notices';
 
-		protected $id;
+		protected $id = null;
 		protected $content = '';
 		protected $noticeType = 'success';
 		protected $customCssClasses = array();
@@ -114,6 +114,9 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		 * @return $this
 		 */
 		public function persistentlyDismissible($scope = self::DISMISS_PER_SITE) {
+			//TODO: If the notice is no longer registered when it's dismissed, we should still be able to dismiss it. Consider capabilities, too.
+			//Transients would work. See https://github.com/collizo4sky/persist-admin-notices-dismissal
+
 			if (empty($this->id)) {
 				throw new \LogicException('Persistently dismissible notices must have a unique ID.');
 			}
@@ -207,48 +210,56 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		 * Output the notice.
 		 */
 		public function outputNotice() {
-			$attributes = array();
-
-			if (isset($this->id)) {
-				$attributes['id'] = $this->id;
-			}
-
-			$attributes['class'] = 'notice notice-' . $this->noticeType;
-			if (!empty($this->customCssClasses)) {
-				$attributes['class'] .= ' ' . implode(' ', $this->customCssClasses);
-			}
+			$classes = array_merge(
+				array('notice', 'notice-' . $this->noticeType),
+				$this->customCssClasses
+			);
 
 			if ($this->isDismissible) {
-				$attributes['class'] .= ' is-dismissible';
+				$classes[] = 'is-dismissible';
 			}
+
+			$attributes = array(
+				'id' => $this->id,
+				'class' => implode(' ', $classes),
+			);
+
 			if ($this->isPersistentlyDismissible) {
 				$attributes['data-ye-dismiss-nonce'] = wp_create_nonce($this->getDismissActionName());
-
-				if (!wp_script_is('ye-dismiss-notice', 'registered')) {
-					wp_register_script(
-						'ye-dismiss-notice',
-						plugins_url('dismiss-notice.js', __FILE__),
-						array('jquery'),
-						'20161126',
-						true
-					);
-				}
-				if (!wp_script_is('ye-dismiss-notice', 'enqueued') && !wp_script_is('ye-dismiss-notice', 'done')) {
-					wp_enqueue_script('ye-dismiss-notice');
-				}
-			}
-
-			$attributePairs = array();
-			foreach ($attributes as $name => $value) {
-				$attributePairs[] = $name . '="' . esc_attr($value) . '"';
+				$this->enqueueScriptOnce();
 			}
 
 			/** @noinspection HtmlUnknownAttribute */
 			printf(
 				'<div %1$s>%2$s</div>',
-				implode(' ', $attributePairs),
+				$this->formatTagAttributes($attributes),
 				$this->content
 			);
+		}
+
+		protected function enqueueScriptOnce() {
+			if (!wp_script_is('ye-dismiss-notice', 'registered')) {
+				wp_register_script(
+					'ye-dismiss-notice',
+					plugins_url('dismiss-notice.js', __FILE__),
+					array('jquery'),
+					'20161126',
+					true
+				);
+			}
+			if (!wp_script_is('ye-dismiss-notice', 'enqueued') && !wp_script_is('ye-dismiss-notice', 'done')) {
+				wp_enqueue_script('ye-dismiss-notice');
+			}
+		}
+
+		protected function formatTagAttributes($attributes) {
+			$attributePairs = array();
+			foreach ($attributes as $name => $value) {
+				if (isset($value)) {
+					$attributePairs[] = $name . '="' . esc_attr($value) . '"';
+				}
+			}
+			return implode(' ', $attributePairs);
 		}
 
 		//TODO: Is this method name misleading? It fits the intended use case, but not the actual implementation.
@@ -400,6 +411,10 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		}
 
 		public function undismiss() {
+			if (!$this->isPersistentlyDismissible) {
+				return;
+			}
+
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
 				delete_option($this->getDismissOptionName());
 			} else {
@@ -439,9 +454,9 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			}
 
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
-				return get_option($this->getDismissOptionName(), false);
+				return (boolean)(get_option($this->getDismissOptionName(), false));
 			} else {
-				return get_user_meta(get_current_user_id(), $this->getDismissOptionName(), false);
+				return (boolean)(get_user_meta(get_current_user_id(), $this->getDismissOptionName(), false));
 			}
 		}
 
