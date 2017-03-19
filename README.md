@@ -9,6 +9,11 @@ A PHP utility library for WordPress plugins that helps create admin notices.
 * Show notices [on specific pages](#onpagescreenid).
 * Show notices to users who have [a specific capability](#requiredcapcapability).
 
+## Requirements
+
+- PHP 5.3 or later.
+- WordPress 4.2 or later.
+
 ## Usage
 
 Basic example:
