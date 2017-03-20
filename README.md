@@ -14,11 +14,27 @@ A PHP utility library for WordPress plugins that helps create admin notices.
 - PHP 5.3 or later.
 - WordPress 4.2 or later.
 
+## Installation
+
+Install with Composer:
+```
+composer require "yahnis-elsts/admin-notices"
+```
+
+Alternatively, you can install it manually:
+1. Download the latest release.
+2. Move the `admin-notices` directory to your plugin.
+3. Load the library: 
+	```php 
+	require '/path/to/admin-notices/AdminNotice.php';
+	```
+
+A note on load order: To ensure that persistently dismissible notices will work correctly, you should `require` the library *before* the `admin_init` action. For example, you can put the `require` in a `plugins_loaded` hook, or simply at the top of your plugin.  
+
 ## Usage
 
 Basic example:
 ```php
-require '/path/to/AdminNotice.php';
 use \YeEasyAdminNotices\V1\AdminNotice;
 
 AdminNotice::create()
@@ -169,7 +185,7 @@ These methods control **where** notices will appear and **who** will be able to 
 
 Show the notice only on the specified admin page(s). `$screenId` can be either the screen ID of a page (i.e. a string), or an array of screen IDs.
  
-See [Admin Screen Reference](https://codex.wordpress.org/Plugin_API/Admin_Screen_Reference) for a list of screen and their IDs. In the case of plugin and theme admin pages, the screen ID is usually the same as the value returned by the `add_*_page()` function.
+See [Admin Screen Reference](https://codex.wordpress.org/Plugin_API/Admin_Screen_Reference) for a list of screens and their IDs. In the case of plugin and theme admin pages, the screen ID is usually the same as the value returned by the `add_*_page()` function.
 
 Example:
 ```php
