@@ -264,7 +264,6 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			return implode(' ', $attributePairs);
 		}
 
-		//TODO: Is this method name misleading? It fits the intended use case, but not the actual implementation.
 		/**
 		 * Show the notice on the next admin page that's visited by the current user.
 		 * The notice will be shown only once.
@@ -433,7 +432,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			return $this;
 		}
 
-		public function undismiss() {
+		public function undismiss($scope = self::DISMISS_PER_SITE) {
 			if (!$this->isPersistentlyDismissible) {
 				return $this;
 			}
@@ -441,8 +440,13 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
 				delete_option($this->getDismissOptionName());
 			} else {
-				//TODO: What if this gets called before the user is authenticated? Undismiss for all users?
-				delete_user_meta(get_current_user_id(), $this->getDismissOptionName());
+				if ($scope === self::DISMISS_PER_SITE) {
+					//Un-dismiss it for all users.
+					delete_metadata('user', 0, $this->getDismissOptionName(), '', true);
+				} else {
+					//Un-dismiss just for the current user.
+					delete_user_meta(get_current_user_id(), $this->getDismissOptionName());
+				}
 			}
 
 			return $this;
