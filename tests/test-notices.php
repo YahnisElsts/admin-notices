@@ -144,4 +144,51 @@ class BasicNoticeTest extends NoticeTestCase {
 		$this->assertEquals($initialOptionCount, $newOptionCount);
 		$this->assertEquals($initialMetaCount, $newMetaCount);
 	}
+
+	function testRequiredCapRestrictsAccess() {
+		AdminNotice::create()
+			->text('Only users with the "manage_options" cap will see this')
+			->requiredCap('manage_options')
+			->show();
+
+		$administrator = $this->factory->user->create(array('role' => 'administrator'));
+		$author = $this->factory->user->create(array('role' => 'author'));
+
+		wp_set_current_user($administrator);
+		$this->assertNoticeCount(
+			$this->doAdminNotices(),
+			1,
+			"User with the required capability can see the notice"
+		);
+
+		wp_set_current_user($author);
+		$this->assertNoticeCount(
+			$this->doAdminNotices(),
+			0,
+			"User without the required capability can't see the notice"
+		);
+	}
+
+	function testNoticesAppearEverywhereByDefault() {
+		//By default, notices appear on all admin pages.
+		AdminNotice::create()->text('A notice')->show();
+
+		set_current_screen('options-general');
+		$this->assertNoticeCount($this->doAdminNotices(), 1);
+		set_current_screen('dashboard');
+		$this->assertNoticeCount($this->doAdminNotices(), 1);
+		set_current_screen('edit-post');
+		$this->assertNoticeCount($this->doAdminNotices(), 1);
+	}
+
+	function testOnPageRestrictsWhereNoticeAppears() {
+		//This notice only appears on "Settings".
+		AdminNotice::create()->onPage('options-general')->text('Show me')->show();
+
+		set_current_screen('options-general');
+		$this->assertNoticeCount($this->doAdminNotices(), 1);
+
+		set_current_screen('dashboard');
+		$this->assertNoticeCount($this->doAdminNotices(), 0);
+	}
 }
