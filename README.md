@@ -27,6 +27,7 @@ AdminNotice::create()
 ```
 
 Result:
+
 ![Basic admin notice](https://cloud.githubusercontent.com/assets/2527434/24096796/c5d87d28-0d6b-11e7-82ad-519a8b24ece8.png)
 
 You don't have to put this code in a hook. The `show()` method is smart. It checks if the `admin_notices` action was already executed and either displays the notice immediately or adds a new `admin_notices` hook that will display the notice when appropriate. It also checks any capability requirements and page filters before actually showing the notice (see [Preconditions](#preconditions)).
