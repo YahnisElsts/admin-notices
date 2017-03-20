@@ -26,7 +26,8 @@ AdminNotice::create()
 	->show();
 ```
 
-//TODO: Add a screenshot of the result.
+Result:
+![Basic admin notice](https://cloud.githubusercontent.com/assets/2527434/24096796/c5d87d28-0d6b-11e7-82ad-519a8b24ece8.png)
 
 You don't have to put this code in a hook. The `show()` method is smart. It checks if the `admin_notices` action was already executed and either displays the notice immediately or adds a new `admin_notices` hook that will display the notice when appropriate. It also checks any capability requirements and page filters before actually showing the notice (see [Preconditions](#preconditions)).
 
@@ -34,10 +35,29 @@ You don't have to put this code in a hook. The `show()` method is smart. It chec
 
 WordPress comes with several built-in CSS classes for different types of admin notices. You can use the following shortcut methods to simultaneously set the notice type and the contents of the notice.
 
-##### `success('Good news')`
-##### `error('Bad news')`
-##### `warning('Caution')`
-##### `info('Information')`
+##### `success([$message])`
+```php
+AdminNotice::create()->success('Success')->show();
+```
+![Success notice](https://cloud.githubusercontent.com/assets/2527434/24096800/c5ee4ebe-0d6b-11e7-9956-91a73e656539.png)
+
+##### `error([$message])`
+```php 
+AdminNotice::create()->error('Error')->show(); 
+```
+![Error notice](https://cloud.githubusercontent.com/assets/2527434/24096799/c5dd524e-0d6b-11e7-9fb8-d9164821ed43.png)
+
+##### `warning([$message])`
+```php
+AdminNotice::create()->warning('Warning')->show();
+```
+![Warning notice](https://cloud.githubusercontent.com/assets/2527434/24096802/c5f77174-0d6b-11e7-8190-101c6405f478.png)
+
+##### `info([$message])`
+```php
+AdminNotice::create()->info('Information')->show();
+```
+![Informational notice](https://cloud.githubusercontent.com/assets/2527434/24096803/c6427d40-0d6b-11e7-9bb2-0f9d28a3df1a.png)
 
 ### Content
 
@@ -56,19 +76,46 @@ AdminNotice::create()
 	->show();
 ```
 
+![Text escaping](https://cloud.githubusercontent.com/assets/2527434/24096797/c5d935c4-0d6b-11e7-81a6-e94c88a53096.png)
+
 ##### `html($arbitraryHtml)`
 
 Set the contents of the notice to a HTML string. Unlike `text()`, this method does not perform any escaping or encoding.
+
+```php
+AdminNotice::create()
+	->info()
+	->html('Tip: Go to <a href="#">Settings -&gt; My Plugin</a> to configure the plugin.')
+	->show();
+```
+
+![HTML content](https://cloud.githubusercontent.com/assets/2527434/24096798/c5dbf0de-0d6b-11e7-9c5a-893ef7d568e0.png)
  
 ##### `rawHtml($arbitraryHtml)`
 
 Usually, the contents of a notice are wrapped in a single paragraph (`<p>`) tag. To prevent this wrapping, use `rawHtml()` to set the notice content. This is useful if you want to use complex HTML or to display a long message where one paragraph is not enough.
+
+```php
+AdminNotice::create()
+	->rawHtml('<p>First paragraph</p><p>Second paragraph</p>')
+	->show();
+```
+
+![Raw HTML content](https://cloud.githubusercontent.com/assets/2527434/24096794/c5af9ade-0d6b-11e7-9e96-9b5e174dbaa0.png)
 
 ### Dismissible notices
 
 ##### `dismissible()`
 
 Add an "(x)" icon to the notice. Clicking the icon will hide the notice. However, this doesn't prevent the notice from reappearing in the future. Use `persistentlyDismissible()` for that.
+
+```php
+AdminNotice::create()
+	->text('You can hide this notice by clicking the "(x)" =>')
+	->dismissible()
+	->show();
+```
+![Dismissible notice (not persistent)](https://cloud.githubusercontent.com/assets/2527434/24096795/c5d3e0a6-0d6b-11e7-87b3-2ca7b1f143aa.png)
 
 ##### `persistentlyDismissible([$scope])`
 
@@ -86,6 +133,7 @@ AdminNotice::create('my-notice-id')
 	->success('This notice can be permanently dismissed.')
 	->show();
 ```
+![Persistently dismissible notice](https://cloud.githubusercontent.com/assets/2527434/24096801/c5f5ccb6-0d6b-11e7-8bd9-42c90e974446.png)
 
 Notes:
 * You must load `AdminNotice.php` before the `admin_init` action to make sure that the default AJAX handlers get set up correctly.
