@@ -22,7 +22,7 @@ composer require "yahnis-elsts/admin-notices"
 ```
 
 Alternatively, you can install it manually:
-1. Download the latest release.
+1. Download [the latest release](https://github.com/YahnisElsts/admin-notices/releases/latest).
 2. Move the `admin-notices` directory to your plugin.
 3. Load the library: 
 	```php 
