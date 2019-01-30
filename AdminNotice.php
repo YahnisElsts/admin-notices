@@ -11,6 +11,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 
 		const DISMISS_PER_USER = 'user';
 		const DISMISS_PER_SITE = 'site';
+		const DISMISS_PERMANENTLY = 100 * YEAR_IN_SECONDS;
 		const DISMISS_ACTION_PREFIX = 'ye_v1_dismiss-';
 
 		const DISMISSED_OPTION_PREFIX = 'ye_is_dismissed-';
@@ -27,6 +28,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		protected $isDismissible = false;
 		protected $isPersistentlyDismissible = false;
 		protected $dismissionScope = self::DISMISS_PER_SITE;
+		protected $dismissalDuration = self::DISMISS_PERMANENTLY;
 
 		public function __construct($id = null) {
 			$this->id = $id;
@@ -112,9 +114,10 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		 * When the user dismisses the notice, remember that and don't show it again.
 		 *
 		 * @param string $scope
+		 * @param int $duration How long (in seconds) the notice should be considered dismissed for.
 		 * @return $this
 		 */
-		public function persistentlyDismissible($scope = self::DISMISS_PER_SITE) {
+		public function persistentlyDismissible($scope = self::DISMISS_PER_SITE, $duration = self::DISMISS_PERMANENTLY) {
 			if (empty($this->id)) {
 				throw new \LogicException('Persistently dismissible notices must have a unique ID.');
 			}
@@ -122,6 +125,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			$this->isDismissible = true;
 			$this->isPersistentlyDismissible = true;
 			$this->dismissionScope = $scope;
+			$this->dismissalDuration = $duration;
 
 			$ajaxCallback = array($this, 'ajaxDismiss');
 			if (has_action($this->getDismissActionName(), $ajaxCallback) === false) {
@@ -348,6 +352,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				'isDismissible'             => $this->isDismissible,
 				'isPersistentlyDismissible' => $this->isPersistentlyDismissible,
 				'dismissionScope'           => $this->dismissionScope,
+				'dismissalDuration'         => $this->dismissalDuration,
 				'customCssClasses'          => $this->customCssClasses,
 				'allowedScreens'            => $this->allowedScreens,
 				'requiredCapability'        => $this->requiredCapability,
@@ -377,7 +382,10 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				$notice->dismissible();
 			}
 			if ($properties['isPersistentlyDismissible']) {
-				$notice->persistentlyDismissible(self::getKey($properties, 'dismissionScope', self::DISMISS_PER_SITE));
+				$notice->persistentlyDismissible(
+					self::getKey($properties, 'dismissionScope', self::DISMISS_PER_SITE),
+					$properties['dismissalDuration']
+				);
 			}
 
 			return $notice;
@@ -418,15 +426,30 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			exit('Notice dismissed');
 		}
 
-		public function dismiss() {
+		/**
+		 * Dismiss a notice.
+		 *
+		 * @param int $duration How long (in seconds) the notice should be considered dismissed for.
+		 *                      By default, the duration is the same as the duration
+		 *                      passed to {@see self::persistentlyDismissible()}.
+		 *                      You can also pass {@see self::DISMISS_PERMANENTLY}.
+		 * @return self
+		 */
+		public function dismiss($duration = null) {
 			if (!$this->isPersistentlyDismissible) {
 				return $this;
 			}
 
+			$dismissalTime = time();
+
+			if ($duration !== null) {
+				$dismissalTime = $dismissalTime - ($this->dismissalDuration - $duration);
+			}
+
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
-				update_option($this->getDismissOptionName(), true);
+				update_option($this->getDismissOptionName(), $dismissalTime);
 			} else {
-				update_user_meta(get_current_user_id(), $this->getDismissOptionName(), true);
+				update_user_meta(get_current_user_id(), $this->getDismissOptionName(), $dismissalTime);
 			}
 
 			return $this;
@@ -483,11 +506,29 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				return false;
 			}
 
+			$dismissalTime = 0;
+
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
-				return (boolean)(get_option($this->getDismissOptionName(), false));
+				$dismissalTime = (int)get_option($this->getDismissOptionName());
 			} else {
-				return (boolean)(get_user_meta(get_current_user_id(), $this->getDismissOptionName(), true));
+				$dismissalTime = (int)get_user_meta(get_current_user_id(), $this->getDismissOptionName(), true);
 			}
+
+			if (!$dismissalTime) {
+				return false;
+			}
+
+			// If the library has been updated from version 1.0, then the dismiss option
+			// will contain '1' instead of the dismissal time. The best we can do
+			// in this case is set the dismissal time to the current time so that
+			// the notice can at least eventually be undismissed.
+			if ($dismissalTime === 1) {
+				$this->dismiss();
+
+				return true;
+			}
+
+			return time() < $dismissalTime + $this->dismissalDuration;
 		}
 
 		protected function getDismissActionName() {
