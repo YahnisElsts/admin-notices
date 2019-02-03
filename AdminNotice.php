@@ -384,7 +384,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			if ($properties['isPersistentlyDismissible']) {
 				$notice->persistentlyDismissible(
 					self::getKey($properties, 'dismissionScope', self::DISMISS_PER_SITE),
-					$properties['dismissalDuration']
+					self::getKey($properties, 'dismissalDuration', self::DISMISS_PERMANENTLY)
 				);
 			}
 
