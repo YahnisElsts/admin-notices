@@ -440,16 +440,15 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				return $this;
 			}
 
-			$dismissalTime = time();
-
-			if ($duration !== null) {
-				$dismissalTime = $dismissalTime - ($this->dismissalDuration - $duration);
-			}
+			$dismissal = json_encode(array(
+				'dismissalTime'     => time(),
+				'dismissalDuration' => $duration,
+			));
 
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
-				update_option($this->getDismissOptionName(), $dismissalTime);
+				update_option($this->getDismissOptionName(), $dismissal);
 			} else {
-				update_user_meta(get_current_user_id(), $this->getDismissOptionName(), $dismissalTime);
+				update_user_meta(get_current_user_id(), $this->getDismissOptionName(), $dismissal);
 			}
 
 			return $this;
@@ -506,15 +505,15 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				return false;
 			}
 
-			$dismissalTime = 0;
-
 			if ($this->dismissionScope === self::DISMISS_PER_SITE) {
-				$dismissalTime = (int)get_option($this->getDismissOptionName());
+				$dismissal = get_option($this->getDismissOptionName());
 			} else {
-				$dismissalTime = (int)get_user_meta(get_current_user_id(), $this->getDismissOptionName(), true);
+				$dismissal = get_user_meta(get_current_user_id(), $this->getDismissOptionName(), true);
 			}
 
-			if (!$dismissalTime) {
+			$dismissal = json_decode($dismissal, true);
+
+			if (!$dismissal) {
 				return false;
 			}
 
@@ -522,13 +521,13 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 			// will contain '1' instead of the dismissal time. The best we can do
 			// in this case is set the dismissal time to the current time so that
 			// the notice can at least eventually be undismissed.
-			if ($dismissalTime === 1) {
+			if ($dismissal === 1) {
 				$this->dismiss();
 
 				return true;
 			}
 
-			return time() < $dismissalTime + $this->dismissalDuration;
+			return time() < $dismissal['dismissalTime'] + ($dismissal['dismissalDuration'] ?: $this->dismissalDuration);
 		}
 
 		protected function getDismissActionName() {
