@@ -511,7 +511,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 				$dismissal = get_user_meta(get_current_user_id(), $this->getDismissOptionName(), true);
 			}
 
-			$dismissal = json_decode($dismissal, true);
+			$dismissal = is_string($dismissal) ? json_decode($dismissal, true) : false;
 
 			if (!$dismissal) {
 				return false;
