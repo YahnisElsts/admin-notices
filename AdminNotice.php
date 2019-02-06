@@ -11,7 +11,7 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 
 		const DISMISS_PER_USER = 'user';
 		const DISMISS_PER_SITE = 'site';
-		const DISMISS_PERMANENTLY = 100 * YEAR_IN_SECONDS;
+		const DISMISS_PERMANENTLY = 3153600000; //100 years in seconds.
 		const DISMISS_ACTION_PREFIX = 'ye_v1_dismiss-';
 
 		const DISMISSED_OPTION_PREFIX = 'ye_is_dismissed-';
