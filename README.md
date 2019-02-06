@@ -5,7 +5,7 @@ A PHP utility library for WordPress plugins that helps create admin notices.
 
 ## Highlights
 * Fluent interface.
-* [Persistently dismissible notices.](#persistentlydismissiblescope)
+* [Persistently dismissible notices](#persistentlydismissiblescope) with optional dismissal duration.
 * Show notices [on specific pages](#onpagescreenid).
 * Show notices to users who have [a specific capability](#requiredcapcapability).
 
@@ -134,7 +134,7 @@ AdminNotice::create()
 ```
 ![Dismissible notice (not persistent)](https://cloud.githubusercontent.com/assets/2527434/24096795/c5d3e0a6-0d6b-11e7-87b3-2ca7b1f143aa.png)
 
-##### `persistentlyDismissible([$scope])`
+##### `persistentlyDismissible([$scope, $duration])`
 
 Make the notice persistently dismissible. When the user dismisses the notice, the library stores a flag in the database that prevents the notice from showing up again. Persistently dismissible notices must have a unique ID.
  
@@ -152,13 +152,25 @@ AdminNotice::create('my-notice-id')
 ```
 ![Persistently dismissible notice](https://cloud.githubusercontent.com/assets/2527434/24096801/c5f5ccb6-0d6b-11e7-8bd9-42c90e974446.png)
 
+The `$duration` parameter controls how long (in seconds) the notice will be considered dismissed for. By default, notices will be dismissed permanently.
+
+Example:
+```php
+AdminNotice::create('my-notice-id')
+	->persistentlyDismissible(AdminNotice::DISMISS_PER_SITE, WEEK_IN_SECONDS)
+	->success('This notice can be dismissed for 1 week.')
+	->show();
+```
+
 Notes:
 * You must load `AdminNotice.php` before the `admin_init` action to make sure that the default AJAX handlers get set up correctly.
 * It's safe to call `show()` on a dismissed notice. It won't display the notice, and it won't throw an error either.
 
-##### `dismiss()`
+##### `dismiss([$duration])`
 
-Permanently dismiss the notice. Only works on notices that have been flagged as `persistentlyDismissible()`.
+Persistently dismiss the notice. Only works on notices that have been flagged as `persistentlyDismissible()`.
+
+The `$duration` parameter controls how long (in seconds) the notice will be considered dismissed for. By default, the duration is the same as the duration passed to `persistentlyDismissible()`. You can also pass `AdminNotice::DISMISS_PERMANENTLY` to dismiss the notice permanently.
 
 ##### `undismiss()`
 
