@@ -601,7 +601,9 @@ if (!class_exists(__NAMESPACE__ . '\\AdminNotice', false)) {
 		return new AdminNotice($id);
 	}
 
-	add_action('admin_notices', array(__NAMESPACE__ . '\\AdminNotice', '_showDelayedNotices'));
-	add_action('admin_init', array(__NAMESPACE__ . '\\AdminNotice', '_ajaxAddDismissalHandler'), 300);
+	if (function_exists('add_action')) {
+		add_action('admin_notices', array(__NAMESPACE__ . '\\AdminNotice', '_showDelayedNotices'));
+		add_action('admin_init', array(__NAMESPACE__ . '\\AdminNotice', '_ajaxAddDismissalHandler'), 300);
+	}
 
 } //class_exists
